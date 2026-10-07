@@ -197,7 +197,8 @@ $("#tabs").addEventListener("click", (e) => {
 function showTab(name) {
   $$("#tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
   $$(".panel").forEach((p) => (p.hidden = p.dataset.panel !== name));
-  if (name === "board" && cy) { cy.resize(); }
+  // The board may have been laid out while hidden (zero size): re-measure and re-fit on return.
+  if (name === "board" && cy) requestAnimationFrame(() => { cy.resize(); relayout(true); });
   if (name === "exposure" && map) setTimeout(() => { map.invalidateSize(); fitMap(); }, 50);
 }
 
@@ -308,7 +309,7 @@ function relayout(final = false) {
     lastLayout = Date.now();
     const pos = positions();
     cy.layout({ name: "preset", positions: (n) => pos[n.id()] || { x: 0, y: 0 }, animate: !reduceMotion,
-      animationDuration: 650, animationEasing: "ease-out-cubic", fit: true, padding: 40 }).run();
+      animationDuration: 650, animationEasing: "ease-out-cubic", fit: $("#board").offsetWidth > 0, padding: 40 }).run();
   }, wait);
 }
 
