@@ -27,7 +27,8 @@ evidence board.
 - [x] Repo + CI image to ghcr
 - [x] Azure deploy: https://footprint.livelybeach-69506dc5.centralindia.azurecontainerapps.io
 - [x] Custom domain https://osint.zaidansari.tech (Cloudflare CNAME + asuid TXT, DNS only; Azure managed certificate, valid to 2027-04-07)
-- [x] Pre-warm the demo targets (tesla.com, github.com, torvalds) so they replay instantly
+- [x] Demo targets (tesla.com, github.com, torvalds) bundled as snapshots in `app/data/demo/`: they replay first, never expire, survive restarts
+- [x] Pre-demo hardening from an independent review (step time limits, local JS libraries, error isolation, board re-fit) and a live end-to-end rehearsal
 
 ## Owner steps
 
@@ -38,7 +39,8 @@ evidence board.
    `az containerapp env certificate delete -n qvault-env -g rg-qvault --subscription 4e995e2f-5117-441f-97d2-149256d6215b --certificate mc-qvault-env-osint-zaidansari-8734 --yes`,
    then delete the `osint` CNAME and `asuid.osint` TXT records in Cloudflare.
 2. **Redeploying a new build:** `az containerapp update -n footprint -g rg-footprint --subscription 4e995e2f-5117-441f-97d2-149256d6215b --image ghcr.io/zaidnansari2011/footprint:<commit sha>`.
-   A restart empties the replay cache, so re-run the three demo scans afterwards.
+   Then deactivate the old revision (`az containerapp revision list ...`, `revision deactivate`).
+   Expect ~15-30 s of 503/404 while traffic switches, so **don't deploy just before presenting**.
 
 ## Progress log
 
@@ -46,3 +48,4 @@ evidence board.
 |---|---|
 | 2026-10-07 | Built and tested locally; full tesla.com scan in ~20 s |
 | 2026-10-07 | Live on Azure; fresh scans take ~45 s there (the Wayback Machine is the slowest source and often times out), cached replays ~5 s |
+| 2026-10-07 | Pre-demo pass: review found 8 issues, all fixed; board re-fit bug found in rehearsal and fixed; live rehearsal of 8 flows passes with no JS errors |
