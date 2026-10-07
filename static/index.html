@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/vendor/leaflet.min.css">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body class="is-idle">
@@ -176,8 +176,9 @@
   </symbol>
 </svg>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Served locally (from cdnjs, MIT/BSD licences) so a blocked CDN on the venue network can't break the board. -->
+<script src="/vendor/cytoscape.min.js"></script>
+<script src="/vendor/leaflet.min.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

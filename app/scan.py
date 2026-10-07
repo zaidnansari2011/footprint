@@ -24,7 +24,7 @@ from .net import make_client
 from .scoring import score
 
 _extract = tldextract.TLDExtract(suffix_list_urls=(), cache_dir=None)
-DOMAIN_RX = re.compile(r"^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+DOMAIN_RX = re.compile(r"^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$")
 
 STEPS = {
     "dns": "DNS & email",
@@ -39,6 +39,8 @@ STEPS = {
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 CACHE_TTL = 6 * 3600
+DEMO_DIR = Path(__file__).resolve().parent / "data" / "demo"
+STEP_BUDGET = 60  # seconds; a step that takes longer is reported as empty
 
 
 def parse_target(raw: str) -> dict | None:
@@ -68,12 +70,19 @@ def _cache_path(t: dict) -> Path:
 
 
 def cached_events(t: dict) -> list[dict] | None:
+    """A snapshot shipped with the app for demo targets, else a recent scan from the cache.
+
+    Snapshots (``app/data/demo/``) never expire, survive container restarts and can't be
+    overwritten by a weaker live scan, so the presentation's example targets replay even
+    if every public API is down on the day.
+    """
     p = _cache_path(t)
-    try:
-        if time.time() - p.stat().st_mtime < CACHE_TTL:
-            return json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        pass
+    for path, ttl in ((DEMO_DIR / p.name, None), (p, CACHE_TTL)):
+        try:
+            if ttl is None or time.time() - path.stat().st_mtime < ttl:
+                return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
     return None
 
 
@@ -100,15 +109,29 @@ async def run(t: dict) -> AsyncIterator[dict]:
 
     task = asyncio.create_task(_work(t, emit))
     task.add_done_callback(lambda _: q.put_nowait(None))
-    while (e := await q.get()) is not None:
-        log.append(e)
-        yield e
-    if task.exception():
-        e = {"type": "error", "message": "The scan stopped unexpectedly. Try again in a moment."}
-        yield e
+    try:
+        while True:
+            try:
+                e = await asyncio.wait_for(q.get(), 15)
+            except asyncio.TimeoutError:
+                yield {"type": "ping"}  # keeps proxies from closing a quiet stream
+                continue
+            if e is None:
+                break
+            log.append(e)
+            yield e
+    finally:
+        if not task.done():  # the visitor left mid-scan: stop spending requests on it
+            task.cancel()
+    if task.cancelled() or task.exception():
+        yield {"type": "error", "message": "The scan stopped unexpectedly. Try again in a moment."}
         return
-    CACHE_DIR.mkdir(exist_ok=True)
-    _cache_path(t).write_text(json.dumps(log), encoding="utf-8", newline="\n")
+    # Don't keep a scan whose main sources failed; the next visitor should get a fresh try.
+    done = log[-1]["result"] if log and log[-1].get("type") == "done" else {}
+    key = ("accounts",) if t["mode"] == "handle" else ("dns", "subdomains", "hosts", "lookalikes", "accounts")
+    if all(done.get(k) for k in key):
+        CACHE_DIR.mkdir(exist_ok=True)
+        _cache_path(t).write_text(json.dumps(log), encoding="utf-8", newline="\n")
 
 
 async def _work(t: dict, emit) -> None:
@@ -118,8 +141,8 @@ async def _work(t: dict, emit) -> None:
         async def step(name, coro, summarise):
             await emit({"type": "step", "step": name, "state": "running"})
             try:
-                data = await coro
-            except Exception:  # one broken source must not sink the whole scan
+                data = await asyncio.wait_for(coro, STEP_BUDGET)
+            except Exception:  # one broken or stuck source must not sink the whole scan
                 data = None
             result[name] = data
             summary, empty = summarise(data)

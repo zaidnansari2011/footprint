@@ -225,8 +225,11 @@ async def ip_intel(client: httpx.AsyncClient, ips: list[str]) -> dict[str, dict]
                 json=ips,
                 timeout=10.0,
             )
-            return {g["query"]: g for g in r.json() if g.get("status") == "success"}
-        except (httpx.HTTPError, ValueError):
+            rows = r.json() if r.status_code == 200 else []
+            if not isinstance(rows, list):  # rate-limited replies are an object, not a list
+                return {}
+            return {g["query"]: g for g in rows if isinstance(g, dict) and g.get("status") == "success"}
+        except Exception:
             return {}
 
     shodan_rows, geo_rows = await asyncio.gather(asyncio.gather(*(shodan(ip) for ip in ips)), geo())

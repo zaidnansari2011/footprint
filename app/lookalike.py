@@ -116,6 +116,15 @@ async def hunt(client: httpx.AsyncClient, domain: str, label: str, suffix: str, 
     psem = asyncio.Semaphore(10)
 
     async def profile(c, deep: bool):
+        try:
+            return await _profile(c, deep)
+        except Exception:
+            c.update(mx=False, ns=[], created=None, registrar=None, age_days=None, final_url=None, title=None,
+                     parked=False, brand_owned=False, redirects_to=None, login_form=False, clone_like=False)
+            score_and_verdict(c)
+            return c
+
+    async def _profile(c, deep: bool):
         async with psem:
             mx, ns = await asyncio.gather(doh(client, c["domain"], "MX"), doh(client, c["domain"], "NS"))
             c["mx"] = bool([m for m in mx["answers"] if not m.endswith(" .")])

@@ -126,3 +126,27 @@ def test_score_adds_up_and_bands():
     titles = [f["title"] for f in s["findings"]]
     assert titles[:2] == ["No SPF record", "No DMARC policy"]  # highs first
     assert s["score"] == 12 + 12 + 2 and s["band"] == "Moderate"
+
+
+# ---------------------------------------------------------------- demo safety
+
+def test_demo_snapshots_replay_and_beat_the_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr(scan, "CACHE_DIR", tmp_path)
+    t = scan.parse_target("tesla.com")
+    (tmp_path / "domain-tesla.com.json").write_text('[{"type": "start", "weak": true}]', encoding="utf-8")
+    events = scan.cached_events(t)
+    assert events[0]["type"] == "start" and "weak" not in events[0]
+    assert events[-1]["type"] == "done"
+
+
+def test_every_demo_snapshot_is_complete():
+    for p in scan.DEMO_DIR.glob("*.json"):
+        events = __import__("json").loads(p.read_text(encoding="utf-8"))
+        assert events[0]["type"] == "start" and events[-1]["type"] == "done", p.name
+
+
+@pytest.mark.asyncio
+async def test_safe_fetch_never_raises_on_garbage():
+    async with net.make_client() as c:
+        for bad in ["http://", "http://[::1", "https://exa mple.com/", "javascript:alert(1)"]:
+            assert await net.safe_fetch(c, bad) is None

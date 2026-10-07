@@ -85,8 +85,9 @@ def _is_public(ip: str) -> bool:
 
 async def host_is_public(host: str) -> bool:
     try:
-        infos = await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
-    except OSError:
+        infos = await asyncio.wait_for(
+            asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM), 4.0)
+    except (OSError, asyncio.TimeoutError):
         return False
     ips = {info[4][0] for info in infos}
     return bool(ips) and all(_is_public(ip) for ip in ips)
@@ -102,7 +103,14 @@ class Page:
 
 
 async def safe_fetch(client: httpx.AsyncClient, url: str, max_hops: int = 5, timeout: float = 10.0) -> Page | None:
-    """GET ``url`` following redirects by hand, refusing any non-public hop."""
+    """GET ``url`` following redirects by hand, refusing any non-public hop. Never raises."""
+    try:
+        return await asyncio.wait_for(_safe_fetch(client, url, max_hops, timeout), timeout * 2)
+    except Exception:  # malformed redirects, odd encodings, slow hosts: treat as "no page"
+        return None
+
+
+async def _safe_fetch(client: httpx.AsyncClient, url: str, max_hops: int, timeout: float) -> Page | None:
     chain: list[str] = []
     for _ in range(max_hops + 1):
         parts = urlsplit(url)

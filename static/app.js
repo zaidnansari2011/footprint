@@ -51,6 +51,7 @@ async function startScan(raw, fresh = false) {
   const btn = $(".go");
   btn.disabled = true;
   history.replaceState(null, "", "?q=" + encodeURIComponent(q));
+  const mine = controller;
   let res;
   try {
     res = await fetch(`/api/scan?q=${encodeURIComponent(q)}${fresh ? "&fresh=1" : ""}`, { signal: controller.signal });
@@ -77,13 +78,14 @@ async function startScan(raw, fresh = false) {
       while ((i = buf.indexOf("\n\n")) >= 0) {
         const chunk = buf.slice(0, i);
         buf = buf.slice(i + 2);
-        if (chunk.startsWith("data: ")) handle(JSON.parse(chunk.slice(6)));
+        if (!chunk.startsWith("data: ")) continue;
+        try { handle(JSON.parse(chunk.slice(6))); } catch (err) { console.error("render failed", err); }
       }
     }
   } catch (err) {
-    if (err.name !== "AbortError") $("#formError").textContent = "The connection dropped mid-scan. Run it again to pick up the cached parts.";
+    if (err.name !== "AbortError") $("#formError").textContent = "The connection dropped mid-scan. Run it again.";
   }
-  btn.disabled = false;
+  if (controller === mine) btn.disabled = false;
 }
 
 /* ------------------------------------------------------------ event router */
@@ -117,6 +119,8 @@ function onStart(e) {
   $("#topFindings").innerHTML = "";
   ["#lookList", "#accList", "#impList", "#emailChecks", "#webBox", "#hostTable", "#subList", "#historyBox", "#report"].forEach((s) => ($(s).innerHTML = ""));
   $("#impBox").hidden = true;
+  $("#hostMore").hidden = true;
+  if (map) map.eachLayer((l) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
   $("#lookCount").textContent = $("#accCount").textContent = "";
   $("#accTitle").textContent = e.mode === "handle" ? `Where “${e.target}” exists` : `Where “${e.brand}” is taken`;
   $("#pinCard").hidden = true;
@@ -200,6 +204,8 @@ function showTab(name) {
 /* ------------------------------------------------------------ board */
 function initBoard(e) {
   cy?.destroy();
+  cy = null;
+  if (typeof cytoscape === "undefined") { $("#board").textContent = "The board couldn't load. The other tabs still work."; return; }
   cy = cytoscape({
     container: $("#board"),
     wheelSensitivity: 0.25,
@@ -415,14 +421,15 @@ function renderHosts(d) {
   $("#hostMore").hidden = rows.length <= 8;
   $("#hostMore").textContent = `Show all ${rows.length} servers`;
 
-  if (!map) {
+  if (!map && typeof L !== "undefined") {
     map = L.map("map", { scrollWheelZoom: false, worldCopyJump: true }).setView([25, 10], 2);
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
       attribution: "Tiles &copy; Esri", maxZoom: 12,
     }).addTo(map);
   }
-  map.eachLayer((l) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
   S.mapPoints = [];
+  if (!map) return;
+  map.eachLayer((l) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
   for (const [ip, h] of rows) {
     if (h.lat == null) continue;
     const bad = h.vulns.length || h.ports.some((p) => RISKY[p]);
