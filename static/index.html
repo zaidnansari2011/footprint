@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Footprint</title>
+<meta name="description" content="Follow a brand's digital footprint: what it exposes, and who is impersonating it.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="is-idle">
+
+<header class="top">
+  <a class="logo" href="/" aria-label="Footprint home">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#foot"/></svg>
+    <span>Footprint</span>
+  </a>
+  <button class="link-btn" id="aboutBtn" type="button">How it works</button>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <div class="trail-deco" aria-hidden="true"></div>
+    <h1 class="hero-title">Follow the <span class="scribble">footprints</span>.</h1>
+    <p class="hero-sub">Type a website to see what it exposes and who is pretending to be it. Type a username to find everywhere it lives.</p>
+
+    <form class="search" id="searchForm" autocomplete="off">
+      <label class="sr-only" for="q">Domain or username</label>
+      <input id="q" name="q" type="text" spellcheck="false" placeholder="tesla.com or a username" maxlength="120" required>
+      <button type="submit" class="go">
+        <span class="go-label">Follow the trail</span>
+        <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#foot"/></svg>
+      </button>
+    </form>
+    <p class="tries">Try
+      <button type="button" class="try" data-q="tesla.com">tesla.com</button>,
+      <button type="button" class="try" data-q="github.com">github.com</button> or
+      <button type="button" class="try" data-q="torvalds">torvalds</button>
+    </p>
+    <p class="form-error" id="formError" role="alert"></p>
+  </section>
+
+  <section class="trail" id="trail" aria-live="polite" hidden>
+    <ol class="stops" id="stops"></ol>
+  </section>
+
+  <section class="case" id="case" hidden>
+    <div class="verdict">
+      <div class="dial" id="dial">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle cx="60" cy="60" r="50" class="dial-track"/>
+          <circle cx="60" cy="60" r="50" class="dial-fill" id="dialFill"/>
+        </svg>
+        <div class="dial-num"><strong id="scoreNum">0</strong><span id="scoreBand">scanning</span></div>
+      </div>
+      <div class="verdict-text">
+        <h2 id="caseTitle">Following the trail&hellip;</h2>
+        <p id="caseLede" class="muted">Results land on the board as each check finishes.</p>
+        <ul class="top-findings" id="topFindings"></ul>
+      </div>
+      <div class="stamp" id="stamp" aria-hidden="true">Case closed</div>
+    </div>
+
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" aria-selected="true" data-tab="board">Board</button>
+      <button role="tab" data-tab="exposure" class="domain-only">Exposure</button>
+      <button role="tab" data-tab="lookalikes" class="domain-only">Lookalikes <em id="lookCount"></em></button>
+      <button role="tab" data-tab="accounts">Accounts <em id="accCount"></em></button>
+      <button role="tab" data-tab="report">Report</button>
+    </nav>
+
+    <div class="panel" data-panel="board">
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="Evidence board graph"></div>
+        <ul class="legend">
+          <li><i class="k-target"></i>Target</li>
+          <li class="domain-only"><i class="k-sub"></i>Subdomain</li>
+          <li class="domain-only"><i class="k-ip"></i>Server</li>
+          <li class="domain-only"><i class="k-port"></i>Risky port</li>
+          <li class="domain-only"><i class="k-look"></i>Lookalike</li>
+          <li><i class="k-acc"></i>Account</li>
+          <li><i class="k-imp"></i>Possible impostor</li>
+        </ul>
+        <aside class="pin-card" id="pinCard" hidden></aside>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="exposure" hidden>
+      <div class="grid-2">
+        <article class="sheet">
+          <h3>Email security</h3>
+          <ul class="checks" id="emailChecks"></ul>
+        </article>
+        <article class="sheet">
+          <h3>Website</h3>
+          <div class="web" id="webBox"></div>
+        </article>
+      </div>
+      <article class="sheet">
+        <h3>Where the servers are</h3>
+        <div id="map" class="map"></div>
+        <div class="table-scroll"><table class="table" id="hostTable"></table></div>
+        <button class="btn btn-ghost btn-sm" id="hostMore" type="button" hidden></button>
+      </article>
+      <div class="grid-2">
+        <article class="sheet">
+          <h3>Subdomains <small id="subCount" class="muted"></small></h3>
+          <p class="muted small">Highlighted names suggest test, admin or internal systems.</p>
+          <ul class="chips" id="subList"></ul>
+        </article>
+        <article class="sheet">
+          <h3>What the archive remembers</h3>
+          <div id="historyBox"></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="lookalikes" hidden>
+      <div class="filters" id="lookFilters">
+        <button class="chip-btn is-on" data-f="all">All</button>
+        <button class="chip-btn" data-f="Likely phishing">Likely phishing</button>
+        <button class="chip-btn" data-f="Suspicious">Suspicious</button>
+        <button class="chip-btn" data-f="Parked">Parked</button>
+        <button class="chip-btn" data-f="Brand-owned">Brand-owned</button>
+      </div>
+      <ul class="looks" id="lookList"></ul>
+      <p class="empty" id="lookEmpty" hidden>No registered lookalikes yet.</p>
+    </div>
+
+    <div class="panel" data-panel="accounts" hidden>
+      <article class="sheet sheet-warn" id="impBox" hidden>
+        <h3>Possible impostors</h3>
+        <p class="muted small">Handles one step away from the real one, on platforms where fake support accounts are common.</p>
+        <ul class="accounts" id="impList"></ul>
+      </article>
+      <article class="sheet">
+        <h3 id="accTitle">Where the handle exists</h3>
+        <ul class="accounts" id="accList"></ul>
+      </article>
+    </div>
+
+    <div class="panel" data-panel="report" hidden>
+      <div class="report-actions">
+        <button class="btn" id="printBtn" type="button">Save as PDF</button>
+        <button class="btn btn-ghost" id="jsonBtn" type="button">Download raw data</button>
+        <button class="btn btn-ghost" id="rescanBtn" type="button">Scan again, fresh</button>
+      </div>
+      <article class="report" id="report"></article>
+    </div>
+  </section>
+</main>
+
+<dialog class="about" id="about">
+  <h2>How Footprint works</h2>
+  <p>It only reads what's already public. Nothing is attacked, logged into or probed beyond loading a homepage, like any visitor would.</p>
+  <ol>
+    <li><b>Exposure.</b> DNS and email records, registration data, certificate logs for subdomains, Shodan's open-port index, server locations, security headers and the Wayback Machine.</li>
+    <li><b>Lookalike domains.</b> Hundreds of typo, swapped-letter, foreign-alphabet and &ldquo;-login&rdquo; variants are generated and checked. Registered ones are profiled: can they receive mail, how new are they, do they show a login page?</li>
+    <li><b>Accounts.</b> The handle is checked on 200+ sites using the open-source Sherlock project's rules, plus support-style variants on scam-prone platforms.</li>
+  </ol>
+  <p class="muted small">Use it on organisations you work for or study, and on your own usernames. Results are kept for six hours, so repeat scans replay instantly.</p>
+  <form method="dialog"><button class="btn">Got it</button></form>
+</dialog>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="foot" viewBox="0 0 32 32">
+    <ellipse cx="15" cy="20" rx="6.2" ry="8.4" fill="currentColor"/>
+    <circle cx="9.6" cy="8.6" r="2.2" fill="currentColor"/>
+    <circle cx="13.6" cy="6.4" r="2.3" fill="currentColor"/>
+    <circle cx="18" cy="6.6" r="2.1" fill="currentColor"/>
+    <circle cx="21.4" cy="9" r="1.9" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
