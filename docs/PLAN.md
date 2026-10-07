@@ -26,6 +26,7 @@ evidence board.
 - [x] Offline tests (26)
 - [x] Repo + CI image to ghcr
 - [x] Azure deploy: https://footprint.livelybeach-69506dc5.centralindia.azurecontainerapps.io
+- [x] Custom domain https://osint.zaidansari.tech (Cloudflare CNAME + asuid TXT, DNS only; Azure managed certificate, valid to 2027-04-07)
 - [x] Pre-warm the demo targets (tesla.com, github.com, torvalds) so they replay instantly
 
 ## Owner steps
@@ -33,6 +34,9 @@ evidence board.
 1. **After the demo,** delete the app so it stops using the teammate's credit. This removes only
    Footprint; Q-Vault's environment and apps stay:
    `az group delete -n rg-footprint --subscription 4e995e2f-5117-441f-97d2-149256d6215b`.
+   The HTTPS certificate belongs to `qvault-env`, so it survives that; remove it too:
+   `az containerapp env certificate delete -n qvault-env -g rg-qvault --subscription 4e995e2f-5117-441f-97d2-149256d6215b --certificate mc-qvault-env-osint-zaidansari-8734 --yes`,
+   then delete the `osint` CNAME and `asuid.osint` TXT records in Cloudflare.
 2. **Redeploying a new build:** `az containerapp update -n footprint -g rg-footprint --subscription 4e995e2f-5117-441f-97d2-149256d6215b --image ghcr.io/zaidnansari2011/footprint:<commit sha>`.
    A restart empties the replay cache, so re-run the three demo scans afterwards.
 

@@ -1,5 +1,7 @@
 # Footprint
 
+**Live:** https://osint.zaidansari.tech
+
 **Follow a brand's digital footprint.** Type a domain and Footprint maps what it exposes to
 the internet, which lookalike domains someone else has registered, and which social handles
 are one typo away from the real one. Type a username and it finds everywhere that handle lives.
