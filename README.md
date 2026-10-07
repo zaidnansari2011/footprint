@@ -1,8 +1,8 @@
-# Footprint
+# Sleuth
 
 **Live:** https://osint.zaidansari.tech
 
-**Follow a brand's digital footprint.** Type a domain and Footprint maps what it exposes to
+**Spot the impostors.** Type a domain and Sleuth maps what it exposes to
 the internet, which lookalike domains someone else has registered, and which social handles
 are one typo away from the real one. Type a username and it finds everywhere that handle lives.
 
@@ -15,12 +15,12 @@ target and one evidence board:
 | **Lookalike-domain hunter** | Who is impersonating it with fake domains? | Generates ~100-250 typo, swapped-letter, look-alike-letter, Cyrillic (IDN) and `-login` variants, checks which are registered, then profiles each: does it accept email, how new is it, does it show a password form, is it parked, or does it belong to the brand itself? |
 | **Username hunter** | Where does the handle exist, and who is squatting on lookalikes? | Checks 200+ sites using the Sherlock project's detection rules (calibrated, see below), plus `support` / `official` / `0-for-o` variants on scam-prone platforms |
 
-Everything is **passive and keyless**: Footprint only reads public data and loads homepages
+Everything is **passive and keyless**: Sleuth only reads public data and loads homepages
 like any visitor. It never logs in, brute-forces or port-scans.
 
 ## What you see
 
-1. **The trail.** One footprint per check; each lights up with a one-line summary as it lands.
+1. **The trail.** One footprint icon per check; each lights up with a one-line summary as it lands.
 2. **The evidence board.** A graph that pins itself up live: your infrastructure across the
    top (subdomains, then servers, then risky ports), lookalike domains on red string to the
    right, accounts and possible impostors to the left. Click any pin for details.
@@ -51,7 +51,7 @@ like any visitor. It never logs in, brute-forces or port-scans.
   rdap.org throttles bursts. A failed source marks its step "empty" instead of failing the scan.
 - **Replay cache.** Finished scans are kept for six hours and replay with the same animation,
   so a demo still works if a public API is down on the day. "Scan again, fresh" bypasses it.
-- **SSRF guard.** Every URL Footprint fetches on a visitor's behalf is resolved first, and
+- **SSRF guard.** Every URL Sleuth fetches on a visitor's behalf is resolved first, and
   every redirect hop is re-checked; private, loopback and link-local addresses (including the
   cloud metadata endpoint `169.254.169.254`) are refused.
 - **Calibrated site list.** `scripts/calibrate_sites.py` keeps only Sherlock sites that report a
@@ -70,13 +70,15 @@ python -m venv .venv
 .venv/Scripts/python scripts/cli_scan.py tesla.com    # a scan in the terminal
 ```
 
-Or with Docker: `docker build -t footprint . && docker run -p 8000:8000 footprint`.
+Or with Docker: `docker build -t sleuth . && docker run -p 8000:8000 sleuth`.
+
+(The repo, image and Azure resources keep their original name, `footprint`.)
 
 Every push to `main` runs the tests and publishes `ghcr.io/zaidnansari2011/footprint`.
 
 ## Ethics
 
-Footprint is for organisations you work for or study, and for your own usernames. It shows
+Sleuth is for organisations you work for or study, and for your own usernames. It shows
 only what is already public, and it frames results as *exposure to fix*, not targets to attack.
 A username search tells you a handle exists; it does not tell you who owns it.
 

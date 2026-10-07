@@ -1,4 +1,4 @@
-# Footprint: build plan
+# Sleuth (repo: footprint): build plan
 
 **Goal:** an OSINT web app for the subject submission, live on Azure for the demo on
 2026-10-08. One input, three tools (recon, lookalike domains, usernames), one animated

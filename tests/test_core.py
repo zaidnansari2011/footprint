@@ -1,4 +1,4 @@
-"""Offline tests for the logic that decides what Footprint says. No network needed."""
+"""Offline tests for the logic that decides what Sleuth says. No network needed."""
 
 import pytest
 

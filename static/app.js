@@ -1,4 +1,4 @@
-/* Footprint front end: reads the scan stream and builds the board as results land. */
+/* Sleuth front end: reads the scan stream and builds the board as results land. */
 "use strict";
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -527,7 +527,7 @@ function stepAccounts(d) {
 function renderReport(r) {
   const when = new Date(r.scanned_at * 1000).toLocaleString();
   const f = r.findings.map((x) => `<li><b>${esc(x.title)}</b> (${x.severity}). ${esc(x.detail)}</li>`).join("") || "<li>No findings.</li>";
-  let body = `<h1>Footprint report: ${esc(r.target)}</h1><p class="muted">Scanned ${esc(when)}. Passive, open-source data only.</p>
+  let body = `<h1>Sleuth report: ${esc(r.target)}</h1><p class="muted">Scanned ${esc(when)}. Passive, open-source data only.</p>
     <div class="rep-score"><strong>${r.score}</strong><div>out of 100<br><span class="muted">${esc(r.band)} exposure (higher means more exposed)</span></div></div>
     <h2>Findings</h2><ul>${f}</ul>`;
   if (r.mode === "domain") {
@@ -558,7 +558,7 @@ $("#printBtn").addEventListener("click", () => window.print());
 $("#jsonBtn").addEventListener("click", () => {
   if (!S?.result) return;
   const url = URL.createObjectURL(new Blob([JSON.stringify(S.result, null, 2)], { type: "application/json" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: `footprint-${S.target}.json` });
+  const a = Object.assign(document.createElement("a"), { href: url, download: `sleuth-${S.target}.json` });
   a.click();
   URL.revokeObjectURL(url);
 });

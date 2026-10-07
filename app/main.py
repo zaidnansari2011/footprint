@@ -1,4 +1,4 @@
-"""Footprint web app: one page, one streaming endpoint."""
+"""Sleuth web app: one page, one streaming endpoint."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from . import scan
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
-app = FastAPI(title="Footprint", docs_url=None, redoc_url=None)
+app = FastAPI(title="Sleuth", docs_url=None, redoc_url=None)
 
 # Fresh scans hit a dozen public APIs; keep one visitor from burning everyone's quota.
 FRESH_PER_10_MIN = 8

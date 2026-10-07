@@ -1,6 +1,6 @@
 """Shared HTTP plumbing: one client factory, DNS-over-HTTPS, and an SSRF-safe fetch.
 
-Footprint fetches pages on hosts that a visitor typed in (the target's homepage, the
+Sleuth fetches pages on hosts that a visitor typed in (the target's homepage, the
 homepages of lookalike domains). Without a guard, a visitor could aim the server at
 ``169.254.169.254`` (cloud metadata) or ``localhost``. ``safe_fetch`` resolves every hop
 of a redirect chain and refuses anything that is not a public address.
