@@ -29,15 +29,11 @@ evidence board.
 - [x] Custom domain https://osint.zaidansari.tech (Cloudflare CNAME + asuid TXT, DNS only; Azure managed certificate, valid to 2027-04-07)
 - [x] Demo targets (tesla.com, github.com, torvalds) bundled as snapshots in `app/data/demo/`: they replay first, never expire, survive restarts
 - [x] Pre-demo hardening from an independent review (step time limits, local JS libraries, error isolation, board re-fit) and a live end-to-end rehearsal
+- [x] Retired 2026-10-08 after the demo: `rg-footprint` and the `osint` managed certificate deleted from the teammate's subscription; Q-Vault untouched
 
 ## Owner steps
 
-1. **After the demo,** delete the app so it stops using the teammate's credit. This removes only
-   Footprint; Q-Vault's environment and apps stay:
-   `az group delete -n rg-footprint --subscription 4e995e2f-5117-441f-97d2-149256d6215b`.
-   The HTTPS certificate belongs to `qvault-env`, so it survives that; remove it too:
-   `az containerapp env certificate delete -n qvault-env -g rg-qvault --subscription 4e995e2f-5117-441f-97d2-149256d6215b --certificate mc-qvault-env-osint-zaidansari-8734 --yes`,
-   then delete the `osint` CNAME and `asuid.osint` TXT records in Cloudflare.
+1. **Still to do:** delete the `osint` CNAME and `asuid.osint` TXT records in Cloudflare (the Azure side was retired on 2026-10-08).
 2. **Redeploying a new build:** `az containerapp update -n footprint -g rg-footprint --subscription 4e995e2f-5117-441f-97d2-149256d6215b --image ghcr.io/zaidnansari2011/footprint:<commit sha>`.
    Then deactivate the old revision (`az containerapp revision list ...`, `revision deactivate`).
    Expect ~15-30 s of 503/404 while traffic switches, so **don't deploy just before presenting**.
